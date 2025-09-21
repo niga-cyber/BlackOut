@@ -17,8 +17,6 @@
     "MixinClientCommonNetworkHandler",
     "MixinClientPlayerEntity",
     "MixinClientPlayerInteractionManager",
-    "MixinEntity",
-    "MixinExplosion",
     "MixinHeldItemRenderer",
     "MixinLivingEntityRenderer",
     "MixinPlayerEntity"
