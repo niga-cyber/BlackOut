@@ -120,6 +120,7 @@ public class OffHandPlus extends BlackOutModule {
         timer -= (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
 
+        // lazy-get modules if they are null (safe)
         if (suicide == null) suicide = Modules.get().get(Suicide.class);
         if (autoCrystalRewrite == null) autoCrystalRewrite = Modules.get().get(AutoCrystalPlus.class);
         if (crystalAura == null) crystalAura = Modules.get().get(CrystalAura.class);
@@ -135,6 +136,8 @@ public class OffHandPlus extends BlackOutModule {
         if (onlyInInv.get() && !(mc.currentScreen instanceof InventoryScreen)) return;
 
         int slot = getSlot(getPredicate(item));
+
+        if (slot < 0) return; // nothing found; guard
 
         move(slot);
 
@@ -159,6 +162,7 @@ public class OffHandPlus extends BlackOutModule {
     }
 
     private Item getItem() {
+        // sword/gapple logic
         if (mc.player.getMainHandStack().getItem() instanceof SwordItem && (!safeSword.get() || !inDanger())) {
             if (gapMode.get().sword) {
                 switch (swordMode.get()) {
@@ -173,13 +177,14 @@ public class OffHandPlus extends BlackOutModule {
             }
         }
 
-        if (inDanger() && !suicide.isActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
+        // Use totem when in danger, only if Suicide module is not active
+        if (inDanger() && !isSuicideActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
             return Items.TOTEM_OF_UNDYING;
         }
 
         switch (itemMode.get()) {
             case Totem -> {
-                if (!suicide.isActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
+                if (!isSuicideActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
                     return Items.TOTEM_OF_UNDYING;
                 }
             }
@@ -203,6 +208,15 @@ public class OffHandPlus extends BlackOutModule {
         return itemAvailable(OLEPOSSUtils::isGapple) && (gapMode.get() == GapMode.LastOption) ? Items.GOLDEN_APPLE : null;
     }
 
+    /**
+     * Safely checks whether the Suicide module is active.
+     * This will lazily fetch the module if suicide is null.
+     */
+    private boolean isSuicideActive() {
+        if (suicide == null) suicide = Modules.get().get(Suicide.class);
+        return suicide != null && suicide.isActive();
+    }
+
     private boolean inDanger() {
         double health = mc.player.getHealth() + mc.player.getAbsorptionAmount();
         return health <= hp.get() || (safety.get() && health - PlayerUtils.possibleHealthReductions() <= safetyHealth.get());
@@ -213,6 +227,7 @@ public class OffHandPlus extends BlackOutModule {
         int slot = -1;
 
         ItemStack s;
+        // iterate inventory (starting from armor/offhand-hotbar area)
         for (int i = 9; i < mc.player.getInventory().size() + 1; i++) {
             s = mc.player.getInventory().getStack(i);
 
